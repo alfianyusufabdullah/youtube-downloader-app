@@ -19,6 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from "~/components/ui/table";
+import { Progress } from "~/components/ui/progress";
 import {
   Sidebar,
   SidebarContent,
@@ -77,6 +78,7 @@ export async function action({ request }: Route.ActionArgs) {
 type Download = {
   id: number;
   url: string;
+  title: string | null;
   status: string;
   progress: number | null;
   jobId: string | null;
@@ -85,38 +87,38 @@ type Download = {
   updatedAt: Date | null;
 };
 
-function StatusBadge({ status }: { status: string }) {
+function StatusBadge({ status, progress }: { status: string; progress: number | null }) {
   switch (status) {
     case "queued":
       return (
-        <Badge variant="secondary">
-          <Clock className="mr-1 h-3 w-3" />
+        <Badge variant="secondary" className="font-normal text-[10px] uppercase tracking-wider px-2 py-0">
+          <Clock className="mr-1 h-3 w-3 text-slate-400" />
           Queued
         </Badge>
       );
     case "processing":
       return (
-        <Badge>
-          <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-          Processing
+        <Badge variant="default" className="font-medium text-[10px] uppercase tracking-wider px-2 py-0 gap-1 bg-slate-900 border-none shadow-none">
+          <Loader2 className="h-3 w-3 animate-spin" />
+          {progress || 0}%
         </Badge>
       );
     case "completed":
       return (
-        <Badge variant="outline" className="border-green-500 text-green-600">
-          <CheckCircle className="mr-1 h-3 w-3" />
+        <Badge variant="outline" className="font-medium text-[10px] uppercase tracking-wider px-2 py-0 gap-1 border-emerald-100 text-emerald-600 bg-emerald-50/50">
+          <CheckCircle className="h-3 w-3" />
           Completed
         </Badge>
       );
     case "failed":
       return (
-        <Badge variant="destructive">
-          <XCircle className="mr-1 h-3 w-3" />
+        <Badge variant="destructive" className="font-medium text-[10px] uppercase tracking-wider px-2 py-0 gap-1 shadow-none">
+          <XCircle className="h-3 w-3" />
           Failed
         </Badge>
       );
     default:
-      return <Badge variant="outline">{status}</Badge>;
+      return <Badge variant="outline" className="text-[10px] uppercase tracking-wider px-2 py-0">{status}</Badge>;
   }
 }
 
@@ -168,21 +170,21 @@ export default function Home() {
   return (
     <SidebarProvider>
       <Sidebar collapsible="offcanvas">
-        <SidebarHeader>
-          <div className="flex items-center gap-2 px-2 py-4">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <Youtube className="h-4 w-4" />
+        <SidebarHeader className="bg-white">
+          <div className="flex items-center gap-3 px-3 py-6">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-900 shadow-sm">
+              <Youtube className="h-5 w-5 text-white" />
             </div>
             <div className="flex flex-col">
-              <span className="font-semibold">YT Downloader</span>
-              <span className="text-xs text-muted-foreground">v2.0.0</span>
+              <span className="text-sm font-bold tracking-tight text-slate-900">Media Vault</span>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">Engine v2.0</span>
             </div>
           </div>
         </SidebarHeader>
 
         <SidebarContent>
-          <SidebarGroup>
-            <SidebarGroupLabel>New Download</SidebarGroupLabel>
+          <SidebarGroup className="px-3">
+            <SidebarGroupLabel className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 px-0">Add Media</SidebarGroupLabel>
             <SidebarGroupContent>
               <Form method="post" className="space-y-3 px-1">
                 <div className="space-y-2">
@@ -215,40 +217,21 @@ export default function Home() {
 
           <Separator />
 
-          <SidebarGroup>
-            <SidebarGroupLabel>Statistics</SidebarGroupLabel>
+          <SidebarGroup className="px-3">
+            <SidebarGroupLabel className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 px-0">Vault Stats</SidebarGroupLabel>
             <SidebarGroupContent>
-              <div className="grid grid-cols-2 gap-2 px-1">
-                <Card>
-                  <CardContent className="p-3">
-                    <div className="text-2xl font-bold">{downloadList.length}</div>
-                    <div className="text-xs text-muted-foreground">Total</div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-3">
-                    <div className="text-2xl font-bold">
-                      {downloadList.filter(d => d.status === "completed").length}
-                    </div>
-                    <div className="text-xs text-muted-foreground">Completed</div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-3">
-                    <div className="text-2xl font-bold">
-                      {downloadList.filter(d => d.status === "processing").length}
-                    </div>
-                    <div className="text-xs text-muted-foreground">Processing</div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-3">
-                    <div className="text-2xl font-bold">
-                      {downloadList.filter(d => d.status === "queued").length}
-                    </div>
-                    <div className="text-xs text-muted-foreground">Queued</div>
-                  </CardContent>
-                </Card>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { label: "Total", value: downloadList.length },
+                  { label: "Done", value: downloadList.filter(d => d.status === "completed").length },
+                  { label: "Active", value: downloadList.filter(d => d.status === "processing").length },
+                  { label: "Wait", value: downloadList.filter(d => d.status === "queued").length }
+                ].map((stat) => (
+                  <div key={stat.label} className="p-3 bg-slate-50 border border-slate-100/50 rounded-xl space-y-0.5">
+                    <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-tight">{stat.label}</span>
+                    <span className="block text-lg font-bold text-slate-900 leading-none">{stat.value}</span>
+                  </div>
+                ))}
               </div>
             </SidebarGroupContent>
           </SidebarGroup>
@@ -284,66 +267,81 @@ export default function Home() {
           </div>
         </header>
 
-        <main className="flex-1 p-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Downloads</CardTitle>
-              <CardDescription>
-                Monitor your download queue in real-time
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {downloadList.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <Download className="h-12 w-12 text-muted-foreground/50" />
-                  <h3 className="mt-4 text-lg font-medium">No downloads yet</h3>
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    Add a YouTube URL in the sidebar to get started
-                  </p>
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-[80px]">ID</TableHead>
-                      <TableHead>Video</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Job ID</TableHead>
-                      <TableHead className="text-right">Created</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {downloadList.map((download) => (
-                      <TableRow key={download.id}>
-                        <TableCell className="font-medium">#{download.id}</TableCell>
-                        <TableCell>
-                          <div className="flex flex-col">
-                            <span className="font-mono text-sm">
-                              {extractVideoId(download.url) || "Unknown"}
-                            </span>
-                            {download.error && (
-                              <span className="text-xs text-destructive">{download.error}</span>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <StatusBadge status={download.status} />
-                        </TableCell>
-                        <TableCell className="font-mono text-sm text-muted-foreground">
-                          {download.jobId || "-"}
-                        </TableCell>
-                        <TableCell className="text-right text-sm text-muted-foreground">
-                          {download.createdAt
-                            ? new Date(download.createdAt).toLocaleString()
-                            : "-"}
-                        </TableCell>
+        <main className="flex-1 p-8 bg-slate-50/20">
+          <div className="max-w-6xl mx-auto space-y-6">
+            <div className="flex flex-col gap-1">
+              <h2 className="text-2xl font-bold tracking-tight text-slate-900">Download Queue</h2>
+              <p className="text-sm text-slate-500">History and real-time status of your video downloads.</p>
+            </div>
+
+            <Card className="border-slate-200/60 shadow-none bg-white">
+              <CardContent className="p-0">
+                {downloadList.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-20 text-center">
+                    <div className="h-12 w-12 rounded-full bg-slate-50 flex items-center justify-center mb-4 border border-slate-100">
+                      <Download className="h-6 w-6 text-slate-300" />
+                    </div>
+                    <h3 className="text-sm font-semibold text-slate-700">No active downloads</h3>
+                    <p className="mt-1 text-sm text-slate-400">Add a link in the sidebar to start a new job.</p>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader className="bg-slate-50/50">
+                      <TableRow className="border-b border-slate-100 hover:bg-transparent">
+                        <TableHead className="w-[60px] text-[11px] font-bold uppercase tracking-wider text-slate-400 pl-6 h-10">ID</TableHead>
+                        <TableHead className="text-[11px] font-bold uppercase tracking-wider text-slate-400 h-10">Media Details</TableHead>
+                        <TableHead className="w-[140px] text-[11px] font-bold uppercase tracking-wider text-slate-400 h-10">Status</TableHead>
+                        <TableHead className="w-[160px] text-right text-[11px] font-bold uppercase tracking-wider text-slate-400 pr-6 h-10">Added On</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
+                    </TableHeader>
+                    <TableBody>
+                      {downloadList.map((download) => (
+                        <TableRow key={download.id} className="border-b border-slate-100/60 hover:bg-slate-50/30 group transition-colors">
+                          <TableCell className="font-mono text-[11px] text-slate-400 pl-6 h-16">
+                            #{download.id}
+                          </TableCell>
+                          <TableCell className="h-16 py-0">
+                            <div className="flex flex-col justify-center">
+                              <span className="text-[13px] font-semibold text-slate-700 leading-tight truncate max-w-[500px]">
+                                {download.title || extractVideoId(download.url) || "Resolving Metadata..."}
+                              </span>
+                              <div className="mt-1.5 flex flex-col gap-1">
+                                {download.status === "processing" && (
+                                  <Progress value={download.progress || 0} className="h-1 bg-slate-100 rounded-none w-full" />
+                                )}
+                                <span className="text-[10px] text-slate-400 font-medium truncate max-w-[400px]">
+                                  {download.url}
+                                </span>
+                                {download.error && (
+                                  <span className="text-[10px] font-semibold text-rose-500 mt-0.5">
+                                    {download.error}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="h-16 py-0">
+                            <StatusBadge status={download.status} progress={download.progress} />
+                          </TableCell>
+                          <TableCell className="text-right text-[11px] text-slate-400 pr-6 h-16 py-0">
+                            {download.createdAt
+                              ? new Date(download.createdAt).toLocaleDateString(undefined, {
+                                month: 'short',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                hour12: true
+                              })
+                              : "-"}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </main>
       </SidebarInset>
     </SidebarProvider>
