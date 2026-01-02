@@ -15,7 +15,8 @@
   "dependencies": {
     "bullmq": "^5.66.4",
     "dockerode": "^4.0.9",
-    "ioredis": "^5.8.2"
+    "ioredis": "^5.8.2",
+    "pg": "^8.16.3"
   },
   "devDependencies": {
     "nodemon": "^3.1.11"
