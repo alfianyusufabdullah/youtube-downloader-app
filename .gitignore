@@ -1,0 +1,19 @@
+# Node.js
+**/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Downloads
+downloads/
+
+# Cache
+.cache/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+.docker/
