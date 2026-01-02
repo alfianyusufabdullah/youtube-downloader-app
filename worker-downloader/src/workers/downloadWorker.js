@@ -2,7 +2,7 @@ import { Worker } from 'bullmq';
 import { redisConnection } from '../config/redis.js';
 import { QUEUE_NAME } from '../queues/downloadQueue.js';
 import { runDownloaderContainer, pollContainer } from '../services/dockerService.js';
-import { updateDownloadStatus } from '../db/index.js';
+import { updateDownloadStatus, updateDownloadProgress } from '../db/index.js';
 
 export const downloadWorker = new Worker(
     QUEUE_NAME,
@@ -16,12 +16,28 @@ export const downloadWorker = new Worker(
         }
 
         let container;
+        let extractedTitle = null;
+
         try {
-            container = await runDownloaderContainer(url, { id: job.id });
+            // Define progress handler
+            const handleProgress = async (progress, title) => {
+                if (downloadId) {
+                    await updateDownloadProgress(downloadId, Math.floor(progress));
+                    if (title && !extractedTitle) {
+                        extractedTitle = title;
+                        await updateDownloadStatus(downloadId, 'processing', null, title);
+                    }
+                }
+            };
+
+            container = await runDownloaderContainer(url, { id: job.id }, handleProgress);
             console.log(`[Job ${job.id}] Container started. Polling...`);
 
             const exitCode = await pollContainer(container);
             console.log(`[Job ${job.id}] Container exited with code: ${exitCode}`);
+
+            // Get final title if available
+            extractedTitle = container.getExtractedTitle?.() || extractedTitle;
 
             try {
                 await container.remove();
@@ -32,18 +48,19 @@ export const downloadWorker = new Worker(
 
             if (exitCode !== 0) throw new Error(`Exit code ${exitCode}`);
 
-            // Update status to completed
+            // Update status to completed with title
             if (downloadId) {
-                await updateDownloadStatus(downloadId, 'completed');
+                await updateDownloadStatus(downloadId, 'completed', null, extractedTitle);
+                await updateDownloadProgress(downloadId, 100);
             }
 
-            return { status: 'completed', exitCode };
+            return { status: 'completed', exitCode, title: extractedTitle };
         } catch (err) {
             console.error(`[Job ${job.id}] Error:`, err.message);
 
             // Update status to failed with error message
             if (downloadId) {
-                await updateDownloadStatus(downloadId, 'failed', err.message);
+                await updateDownloadStatus(downloadId, 'failed', err.message, extractedTitle);
             }
 
             throw err;
@@ -51,10 +68,9 @@ export const downloadWorker = new Worker(
     },
     {
         connection: redisConnection,
-        concurrency: 1,
+        concurrency: 5, // Run 5 concurrent downloads
     }
 );
 
 downloadWorker.on('completed', (job) => console.log(`[Job ${job.id}] has completed!`));
 downloadWorker.on('failed', (job, err) => console.error(`[Job ${job.id}] has failed: ${err.message}`));
-
