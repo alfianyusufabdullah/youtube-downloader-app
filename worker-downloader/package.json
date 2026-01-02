@@ -1,0 +1,23 @@
+{
+  "name": "worker-downloader",
+  "version": "1.0.0",
+  "description": "",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "dev": "nodemon src/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node src/index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bullmq": "^5.66.4",
+    "dockerode": "^4.0.9",
+    "ioredis": "^5.8.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.11"
+  }
+}
