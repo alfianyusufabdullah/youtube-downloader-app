@@ -1,0 +1,29 @@
+services:
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+
+  worker-downloader:
+    build:
+      context: ./worker-downloader
+    depends_on:
+      - redis
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./downloads:/downloads
+    environment:
+      - REDIS_HOST=redis
+      - DOCKER_DOWNLOADS_PATH=${PWD}/downloads
+    restart: always
+
+  app-downloader:
+    build:
+      context: ./app-downloader
+    depends_on:
+      - redis
+    ports:
+      - "3000:3000"
+    environment:
+      - REDIS_HOST=redis
+    restart: always
