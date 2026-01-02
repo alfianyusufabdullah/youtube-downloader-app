@@ -4,11 +4,23 @@ services:
     ports:
       - "6379:6379"
 
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: downloader
+      POSTGRES_PASSWORD: downloader
+      POSTGRES_DB: downloader
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
   worker-downloader:
     build:
       context: ./worker-downloader
     depends_on:
       - redis
+      - postgres
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./downloads:/downloads
@@ -17,6 +29,7 @@ services:
     environment:
       - REDIS_HOST=redis
       - DOCKER_DOWNLOADS_PATH=${PWD}/downloads
+      - DATABASE_URL=postgresql://downloader:downloader@postgres:5432/downloader
     command: npm run dev
     restart: always
 
@@ -26,6 +39,7 @@ services:
       target: development
     depends_on:
       - redis
+      - postgres
     ports:
       - "5173:5173"
     volumes:
@@ -34,5 +48,9 @@ services:
     environment:
       - REDIS_HOST=redis
       - NODE_ENV=development
+      - DATABASE_URL=postgresql://downloader:downloader@postgres:5432/downloader
     command: npm run dev
     restart: always
+
+volumes:
+  postgres_data:
