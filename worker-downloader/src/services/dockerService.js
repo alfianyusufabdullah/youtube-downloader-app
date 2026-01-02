@@ -21,7 +21,34 @@ export async function pollContainer(container) {
     }
 }
 
-export async function runDownloaderContainer(url, jobDetail) {
+/**
+ * Extract video title from yt-dlp log line
+ * Example: [download] Destination: VIDEO TITLE [videoid].f399.mp4
+ * Returns: VIDEO TITLE
+ */
+function extractTitleFromLog(logLine) {
+    // Match: [download] Destination: TITLE [videoId].extension
+    const match = logLine.match(/\[download\] Destination: (.+?) \[[a-zA-Z0-9_-]{11}\]/);
+    if (match) {
+        return match[1].trim();
+    }
+    return null;
+}
+
+/**
+ * Extract progress percentage from yt-dlp log line
+ * Example: [download]   1.2% of  12.34MiB at  2.34MiB/s ETA 00:05
+ * Returns: 1.2
+ */
+function extractProgressFromLog(logLine) {
+    const match = logLine.match(/\[download\]\s+(\d+\.?\d*)%/);
+    if (match) {
+        return parseFloat(match[1]);
+    }
+    return null;
+}
+
+export async function runDownloaderContainer(url, jobDetail, onProgress) {
     const downloadsDir = process.env.DOCKER_DOWNLOADS_PATH || process.cwd();
     console.log(`[Job ${jobDetail.id}] Processing URL: ${url}`);
 
@@ -36,14 +63,44 @@ export async function runDownloaderContainer(url, jobDetail) {
         },
     });
 
+    // Capture logs and look for title/progress
+    let extractedTitle = null;
+    let lastProgress = 0;
+
     const stream = await container.attach({
         stream: true,
         stdout: true,
         stderr: true,
     });
 
-    container.modem.demuxStream(stream, process.stdout, process.stderr);
+    // Collect logs and extract info
+    stream.on('data', (chunk) => {
+        const logLine = chunk.toString();
+        process.stdout.write(logLine);
+
+        // Try to extract title if not found yet
+        if (!extractedTitle) {
+            const title = extractTitleFromLog(logLine);
+            if (title) {
+                extractedTitle = title;
+                console.log(`[Job ${jobDetail.id}] Extracted title: ${title}`);
+            }
+        }
+
+        // Try to extract progress
+        const progress = extractProgressFromLog(logLine);
+        if (progress !== null && progress !== lastProgress) {
+            lastProgress = progress;
+            if (onProgress) {
+                onProgress(progress, extractedTitle);
+            }
+        }
+    });
 
     await container.start();
+
+    // Store reference to get title later
+    container.getExtractedTitle = () => extractedTitle;
+
     return container;
 }
