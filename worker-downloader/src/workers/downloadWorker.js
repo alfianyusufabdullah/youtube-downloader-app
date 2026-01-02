@@ -2,12 +2,18 @@ import { Worker } from 'bullmq';
 import { redisConnection } from '../config/redis.js';
 import { QUEUE_NAME } from '../queues/downloadQueue.js';
 import { runDownloaderContainer, pollContainer } from '../services/dockerService.js';
+import { updateDownloadStatus } from '../db/index.js';
 
 export const downloadWorker = new Worker(
     QUEUE_NAME,
     async (job) => {
-        const { url } = job.data;
+        const { url, downloadId } = job.data;
         if (!url) throw new Error('No URL provided');
+
+        // Update status to processing
+        if (downloadId) {
+            await updateDownloadStatus(downloadId, 'processing');
+        }
 
         let container;
         try {
@@ -26,9 +32,20 @@ export const downloadWorker = new Worker(
 
             if (exitCode !== 0) throw new Error(`Exit code ${exitCode}`);
 
+            // Update status to completed
+            if (downloadId) {
+                await updateDownloadStatus(downloadId, 'completed');
+            }
+
             return { status: 'completed', exitCode };
         } catch (err) {
             console.error(`[Job ${job.id}] Error:`, err.message);
+
+            // Update status to failed with error message
+            if (downloadId) {
+                await updateDownloadStatus(downloadId, 'failed', err.message);
+            }
+
             throw err;
         }
     },
@@ -40,3 +57,4 @@ export const downloadWorker = new Worker(
 
 downloadWorker.on('completed', (job) => console.log(`[Job ${job.id}] has completed!`));
 downloadWorker.on('failed', (job, err) => console.error(`[Job ${job.id}] has failed: ${err.message}`));
+
