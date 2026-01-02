@@ -7,8 +7,6 @@ export async function pollContainer(container) {
         try {
             const data = await container.inspect();
             const status = data.State.Status;
-            console.log(`[Polling] Status: ${status}`);
-
             if (status === 'exited' || status === 'dead') {
                 return data.State.ExitCode;
             }
