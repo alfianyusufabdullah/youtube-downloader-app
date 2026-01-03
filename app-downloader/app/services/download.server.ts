@@ -49,6 +49,18 @@ export const DownloadService = {
         return download;
     },
 
+    async getInProgressDownloadByVideoId(videoId: string, audioOnly: boolean = false) {
+        const result = await db.select()
+            .from(downloads)
+            .where(eq(downloads.videoId, videoId));
+
+        // Check if any of the downloads with same audioOnly mode are in progress
+        return result.find(d =>
+            (d.status === 'queued' || d.status === 'processing' || d.status === 'merging') &&
+            d.audioOnly === audioOnly
+        );
+    },
+
     async updateJobId(downloadId: number, jobId: string) {
         return await db.update(downloads)
             .set({ jobId })
