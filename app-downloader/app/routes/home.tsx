@@ -164,11 +164,14 @@ export default function Home() {
     if (actionData?.success) {
       toast.success("Job synchronized", {
         description: "Your download has been added to the vault.",
-        className: "bg-white border-slate-100 text-slate-900 border shadow-lg rounded-2xl",
+        className: "bg-white border-slate-100 text-slate-900 border shadow-2xl rounded-2xl p-4",
+        descriptionClassName: "text-slate-500 font-medium",
       });
     } else if (actionData?.error) {
       toast.error("Process failed", {
         description: actionData.error,
+        className: "bg-white border-slate-100 text-slate-900 border shadow-2xl rounded-2xl p-4",
+        descriptionClassName: "text-rose-500 font-medium",
       });
     }
   }, [actionData]);
