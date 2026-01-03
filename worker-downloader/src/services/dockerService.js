@@ -1,6 +1,6 @@
 import { docker } from '../config/docker.js';
-
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+import { CONFIG } from '../config/constants.js';
+import { sleep, throttle } from '../utils/index.js';
 
 export async function pollContainer(container) {
     while (true) {
@@ -17,18 +17,16 @@ export async function pollContainer(container) {
             }
             throw err;
         }
-        await sleep(1000);
+        await sleep(CONFIG.CONTAINER_POLL_INTERVAL);
     }
 }
 
 function extractTitleFromLog(logLine) {
-    // Match: [download] Destination: TITLE [videoId].extension
     const downloadMatch = logLine.match(/\[download\] Destination: (.+?) \[[a-zA-Z0-9_-]{11}\]/);
     if (downloadMatch) {
         return downloadMatch[1].trim();
     }
 
-    // Match: [Merger] Merging formats into "TITLE [videoId].extension"
     const mergerMatch = logLine.match(/\[Merger\] Merging formats into "(.+?) \[[a-zA-Z0-9_-]{11}\]/);
     if (mergerMatch) {
         return mergerMatch[1].trim();
@@ -37,17 +35,51 @@ function extractTitleFromLog(logLine) {
     return null;
 }
 
-/**
- * Extract progress percentage from yt-dlp log line
- * Example: [download]   1.2% of  12.34MiB at  2.34MiB/s ETA 00:05
- * Returns: 1.2
- */
 function extractProgressFromLog(logLine) {
     const match = logLine.match(/\[download\]\s+(\d+\.?\d*)%/);
     if (match) {
         return parseFloat(match[1]);
     }
     return null;
+}
+
+export async function cleanupOrphanContainers() {
+    try {
+        const containers = await docker.listContainers({
+            all: true,
+            filters: {
+                label: [`managed-by=${CONFIG.CONTAINER_LABEL}`]
+            }
+        });
+
+        if (containers.length === 0) {
+            console.log('[Cleanup] No orphan containers found');
+            return;
+        }
+
+        console.log(`[Cleanup] Found ${containers.length} orphan container(s), cleaning up...`);
+
+        for (const containerInfo of containers) {
+            try {
+                const container = docker.getContainer(containerInfo.Id);
+                const data = await container.inspect();
+
+                if (data.State.Running) {
+                    console.log(`[Cleanup] Stopping container ${containerInfo.Id.slice(0, 12)}...`);
+                    await container.stop({ t: 5 });
+                }
+
+                console.log(`[Cleanup] Removing container ${containerInfo.Id.slice(0, 12)}...`);
+                await container.remove({ force: true });
+            } catch (err) {
+                console.error(`[Cleanup] Failed to cleanup container ${containerInfo.Id.slice(0, 12)}:`, err.message);
+            }
+        }
+
+        console.log('[Cleanup] Orphan container cleanup complete');
+    } catch (err) {
+        console.error('[Cleanup] Error during orphan container cleanup:', err.message);
+    }
 }
 
 export async function runDownloaderContainer(url, jobDetail, onProgress, onStatus) {
@@ -57,15 +89,18 @@ export async function runDownloaderContainer(url, jobDetail, onProgress, onStatu
     const container = await docker.createContainer({
         Image: 'yt-dlp-local',
         Cmd: [url],
+        Labels: {
+            'managed-by': CONFIG.CONTAINER_LABEL,
+            'job-id': String(jobDetail.id),
+        },
         HostConfig: {
             Binds: [`${downloadsDir}:/downloads`],
             AutoRemove: false,
-            NanoCpus: 1000000000,
-            Memory: 512 * 1024 * 1024,
+            NanoCpus: CONFIG.CONTAINER_CPU_LIMIT,
+            Memory: CONFIG.CONTAINER_MEMORY_LIMIT,
         },
     });
 
-    // Capture logs and look for title/progress
     let extractedTitle = null;
     let lastProgress = 0;
     let hasSentMergerStatus = false;
@@ -76,12 +111,16 @@ export async function runDownloaderContainer(url, jobDetail, onProgress, onStatu
         stderr: true,
     });
 
-    // Collect logs and extract info
+    const throttledProgressUpdate = throttle(async (progress, title) => {
+        if (onProgress) {
+            await onProgress(progress, title);
+        }
+    }, CONFIG.PROGRESS_THROTTLE_MS);
+
     stream.on('data', (chunk) => {
         const logLine = chunk.toString();
         process.stdout.write(logLine);
 
-        // Try to extract title if not found yet
         if (!extractedTitle) {
             const title = extractTitleFromLog(logLine);
             if (title) {
@@ -90,16 +129,12 @@ export async function runDownloaderContainer(url, jobDetail, onProgress, onStatu
             }
         }
 
-        // Try to extract progress
         const progress = extractProgressFromLog(logLine);
         if (progress !== null && progress !== lastProgress) {
             lastProgress = progress;
-            if (onProgress) {
-                onProgress(progress, extractedTitle);
-            }
+            throttledProgressUpdate(progress, extractedTitle);
         }
 
-        // Check for Merger logs
         if (!hasSentMergerStatus && logLine.includes('[Merger]')) {
             hasSentMergerStatus = true;
             console.log(`[Job ${jobDetail.id}] Detected merger phase.`);
@@ -111,8 +146,8 @@ export async function runDownloaderContainer(url, jobDetail, onProgress, onStatu
 
     await container.start();
 
-    // Store reference to get title later
     container.getExtractedTitle = () => extractedTitle;
+    container.cancelThrottle = () => throttledProgressUpdate.cancel();
 
     return container;
 }
