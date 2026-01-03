@@ -23,6 +23,7 @@ export const downloads = pgTable('downloads', {
     fileSize: bigint('file_size', { mode: 'number' }),
     duration: integer('duration'),
     resolution: text('resolution'),
+    fileName: text('file_name'),
 
     createdAt: timestamp('created_at').defaultNow(),
     updatedAt: timestamp('updated_at').defaultNow(),
