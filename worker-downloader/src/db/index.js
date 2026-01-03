@@ -18,13 +18,13 @@ pool.on('connect', () => {
   console.log('[Database] New client connected to pool');
 });
 
-export async function updateDownloadStatus(downloadId, status, error = null, title = null) {
+export async function updateDownloadStatus(downloadId, status, error = null, title = null, fileName = null) {
   const query = `
     UPDATE downloads 
-    SET status = $1, error = $2, title = COALESCE($3, title), updated_at = NOW() 
-    WHERE id = $4
+    SET status = $1, error = $2, title = COALESCE($3, title), file_name = COALESCE($4, file_name), updated_at = NOW() 
+    WHERE id = $5
   `;
-  await pool.query(query, [status, error, title, downloadId]);
+  await pool.query(query, [status, error, title, fileName, downloadId]);
 }
 
 export async function updateDownloadTitle(downloadId, title) {
