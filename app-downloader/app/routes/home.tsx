@@ -108,6 +108,13 @@ function StatusBadge({ status, progress }: { status: string; progress: number | 
           {progress || 0}%
         </Badge>
       );
+    case "merging":
+      return (
+        <Badge variant="default" className="bg-amber-50 text-amber-600 border border-amber-100 hover:bg-amber-50 shadow-none font-medium px-2 py-0.5 rounded-full text-[11px] gap-1.5">
+          <Settings className="h-3 w-3 animate-pulse" />
+          Merging Video
+        </Badge>
+      );
     case "completed":
       return (
         <Badge variant="outline" className="bg-emerald-50 text-emerald-600 border-emerald-100 font-medium px-2 py-0.5 rounded-full text-[11px] gap-1.5">
@@ -229,7 +236,7 @@ export default function Home() {
                 {[
                   { label: "Total", value: downloadList.length, color: "bg-slate-900" },
                   { label: "Done", value: downloadList.filter(d => d.status === "completed").length, color: "bg-emerald-500" },
-                  { label: "Live", value: downloadList.filter(d => d.status === "processing").length, color: "bg-indigo-500" },
+                  { label: "Live", value: downloadList.filter(d => d.status === "processing" || d.status === "merging").length, color: "bg-indigo-500" },
                   { label: "Queue", value: downloadList.filter(d => d.status === "queued").length, color: "bg-slate-400" }
                 ].map((stat) => (
                   <div key={stat.label} className="p-4 bg-white border border-slate-100 rounded-2xl shadow-sm hover:shadow-md hover:border-indigo-100 transition-all group">
