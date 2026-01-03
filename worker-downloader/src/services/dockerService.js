@@ -1,6 +1,7 @@
 import { docker } from '../config/docker.js';
 import { CONFIG } from '../config/constants.js';
 import { sleep, throttle } from '../utils/index.js';
+import { buildYtDlpArgs } from '../utils/commandBuilder.js';
 
 export async function pollContainer(container) {
     while (true) {
@@ -82,13 +83,16 @@ export async function cleanupOrphanContainers() {
     }
 }
 
-export async function runDownloaderContainer(url, jobDetail, onProgress, onStatus) {
+export async function runDownloaderContainer(url, jobDetail, options = {}, onProgress, onStatus) {
     const downloadsDir = process.env.DOCKER_DOWNLOADS_PATH || process.cwd();
     console.log(`[Job ${jobDetail.id}] Processing URL: ${url}`);
 
+    const customArgs = buildYtDlpArgs(options);
+    console.log(`[Job ${jobDetail.id}] yt-dlp args:`, customArgs.join(' '));
+
     const container = await docker.createContainer({
         Image: 'yt-dlp-local',
-        Cmd: [url],
+        Cmd: [...customArgs, url],
         Labels: {
             'managed-by': CONFIG.CONTAINER_LABEL,
             'job-id': String(jobDetail.id),
