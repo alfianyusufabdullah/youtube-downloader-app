@@ -23,12 +23,12 @@ export async function pollContainer(container) {
 }
 
 function extractTitleFromLog(logLine) {
-    const downloadMatch = logLine.match(/\[download\] Destination: (.+?) \[[a-zA-Z0-9_-]{11}\]/);
+    const downloadMatch = logLine.match(/\[download\] Destination: (.+)/);
     if (downloadMatch) {
         return downloadMatch[1].trim();
     }
 
-    const mergerMatch = logLine.match(/\[Merger\] Merging formats into "(.+?) \[[a-zA-Z0-9_-]{11}\]/);
+    const mergerMatch = logLine.match(/\[Merger\] Merging formats into "(.+)"/);
     if (mergerMatch) {
         return mergerMatch[1].trim();
     }
