@@ -241,13 +241,6 @@ export default function Home() {
             </SidebarGroupContent>
           </SidebarGroup>
         </SidebarContent>
-
-        <SidebarFooter className="py-8 bg-transparent text-center">
-          <div className="px-6 py-4 bg-indigo-50/50 rounded-2xl border border-indigo-100 mx-6">
-            <p className="text-[10px] font-medium text-indigo-600">Enterprise Engine</p>
-            <p className="text-[9px] text-indigo-400 mt-0.5">Build v2.1.0-sophia</p>
-          </div>
-        </SidebarFooter>
       </Sidebar>
 
       <SidebarInset className="bg-white">
