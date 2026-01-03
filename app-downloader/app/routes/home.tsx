@@ -2,13 +2,9 @@ import type { Route } from "./+types/home";
 import { Form, useNavigation, useActionData, useLoaderData } from "react-router";
 import { useEffect, useState } from "react";
 import { downloadQueue } from "../lib/queue.server";
-import { db } from "../db";
-import { downloads } from "../db/schema";
-import { eq, desc } from "drizzle-orm";
+import { DownloadService } from "../services/download.server";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
-import { Label } from "~/components/ui/label";
 import { Badge } from "~/components/ui/badge";
 import { Separator } from "~/components/ui/separator";
 import {
@@ -43,7 +39,7 @@ export function meta({ }: Route.MetaArgs) {
 }
 
 export async function loader() {
-  const downloadList = await db.select().from(downloads).orderBy(desc(downloads.createdAt)).limit(50);
+  const downloadList = await DownloadService.getRecentDownloads(50);
   return { downloads: downloadList };
 }
 
@@ -55,19 +51,27 @@ export async function action({ request }: Route.ActionArgs) {
     return { error: "Please provide a valid YouTube URL." };
   }
 
-  if (!url.includes("youtube.com") && !url.includes("youtu.be")) {
-    return { error: "Only YouTube links are supported at this time." };
+  const videoId = extractVideoId(url);
+  if (!videoId) {
+    return { error: "Could not extract a valid YouTube video ID from the provided link." };
+  }
+
+  // Check if already exists
+  const existing = await DownloadService.getDownloadByVideoId(videoId);
+  if (existing) {
+    if (existing.status === "completed") {
+      return { error: "This video has already been downloaded and is in your vault." };
+    }
+    return { error: "This video is already in the queue or is currently being synced." };
   }
 
   try {
-    const [download] = await db.insert(downloads).values({ url }).returning();
+    const download = await DownloadService.createDownload(url, videoId);
     const job = await downloadQueue.add("download-job", {
       url,
       downloadId: download.id
     });
-    await db.update(downloads)
-      .set({ jobId: job.id })
-      .where(eq(downloads.id, download.id));
+    await DownloadService.updateJobId(download.id, job.id as string);
 
     return { success: true, jobId: job.id, downloadId: download.id };
   } catch (err: any) {
@@ -77,6 +81,7 @@ export async function action({ request }: Route.ActionArgs) {
 
 type Download = {
   id: number;
+  videoId: string | null;
   url: string;
   title: string | null;
   status: string;
@@ -267,7 +272,7 @@ export default function Home() {
           <div className="max-w-6xl mx-auto space-y-8">
             <div className="flex items-end justify-between">
               <div className="space-y-1">
-                <h2 className="text-3xl font-bold tracking-tight text-slate-900">Synchronized Media</h2>
+                <h2 className="text-3xl font-bold tracking-tight text-slate-900">Download Queue</h2>
                 <p className="text-sm font-medium text-slate-500">Real-time status of persistent download jobs.</p>
               </div>
             </div>
