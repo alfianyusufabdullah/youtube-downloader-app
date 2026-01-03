@@ -21,17 +21,19 @@ export async function pollContainer(container) {
     }
 }
 
-/**
- * Extract video title from yt-dlp log line
- * Example: [download] Destination: VIDEO TITLE [videoid].f399.mp4
- * Returns: VIDEO TITLE
- */
 function extractTitleFromLog(logLine) {
     // Match: [download] Destination: TITLE [videoId].extension
-    const match = logLine.match(/\[download\] Destination: (.+?) \[[a-zA-Z0-9_-]{11}\]/);
-    if (match) {
-        return match[1].trim();
+    const downloadMatch = logLine.match(/\[download\] Destination: (.+?) \[[a-zA-Z0-9_-]{11}\]/);
+    if (downloadMatch) {
+        return downloadMatch[1].trim();
     }
+
+    // Match: [Merger] Merging formats into "TITLE [videoId].extension"
+    const mergerMatch = logLine.match(/\[Merger\] Merging formats into "(.+?) \[[a-zA-Z0-9_-]{11}\]/);
+    if (mergerMatch) {
+        return mergerMatch[1].trim();
+    }
+
     return null;
 }
 
@@ -48,7 +50,7 @@ function extractProgressFromLog(logLine) {
     return null;
 }
 
-export async function runDownloaderContainer(url, jobDetail, onProgress) {
+export async function runDownloaderContainer(url, jobDetail, onProgress, onStatus) {
     const downloadsDir = process.env.DOCKER_DOWNLOADS_PATH || process.cwd();
     console.log(`[Job ${jobDetail.id}] Processing URL: ${url}`);
 
@@ -66,6 +68,7 @@ export async function runDownloaderContainer(url, jobDetail, onProgress) {
     // Capture logs and look for title/progress
     let extractedTitle = null;
     let lastProgress = 0;
+    let hasSentMergerStatus = false;
 
     const stream = await container.attach({
         stream: true,
@@ -93,6 +96,15 @@ export async function runDownloaderContainer(url, jobDetail, onProgress) {
             lastProgress = progress;
             if (onProgress) {
                 onProgress(progress, extractedTitle);
+            }
+        }
+
+        // Check for Merger logs
+        if (!hasSentMergerStatus && logLine.includes('[Merger]')) {
+            hasSentMergerStatus = true;
+            console.log(`[Job ${jobDetail.id}] Detected merger phase.`);
+            if (onStatus) {
+                onStatus('merging');
             }
         }
     });
