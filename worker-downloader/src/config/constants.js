@@ -13,4 +13,16 @@ export const CONFIG = {
     DB_CONNECTION_TIMEOUT_MS: 5000,
     REDIS_RETRY_DELAY_MS: 50,
     REDIS_MAX_RETRY_DELAY_MS: 2000,
+
+    QUALITY_PRESETS: {
+        'best': 'bestvideo+bestaudio/best',
+        '1080p': 'bestvideo[height<=1080]+bestaudio/best[height<=1080]',
+        '720p': 'bestvideo[height<=720]+bestaudio/best[height<=720]',
+        '480p': 'bestvideo[height<=480]+bestaudio/best[height<=480]',
+        '360p': 'bestvideo[height<=360]+bestaudio/best[height<=360]',
+    },
+
+    AUDIO_FORMATS: ['mp3', 'm4a', 'opus', 'wav', 'aac', 'flac'],
+    VIDEO_FORMATS: ['mp4', 'mkv', 'webm'],
+    DEFAULT_SUBTITLE_LANG: 'en',
 };
