@@ -3,6 +3,8 @@ import { Form, useNavigation, useActionData, useLoaderData } from "react-router"
 import { useEffect, useState } from "react";
 import { downloadQueue } from "../lib/queue.server";
 import { DownloadService } from "../services/download.server";
+import { validateAndSanitizeUrl, extractVideoId } from "../lib/validation";
+import { checkRateLimit } from "../lib/config";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Badge } from "~/components/ui/badge";
@@ -51,13 +53,26 @@ export async function action({ request }: Route.ActionArgs) {
     return { error: "Please provide a valid YouTube URL." };
   }
 
-  const videoId = extractVideoId(url);
-  if (!videoId) {
-    return { error: "Could not extract a valid YouTube video ID from the provided link." };
+  // Rate limiting (using IP from request headers or fallback)
+  const clientId = request.headers.get("x-forwarded-for") ||
+    request.headers.get("x-real-ip") ||
+    "anonymous";
+  const rateLimit = checkRateLimit(clientId);
+  if (!rateLimit.allowed) {
+    const resetIn = Math.ceil((rateLimit.resetAt - Date.now()) / 1000);
+    return { error: `Rate limit exceeded. Please try again in ${resetIn} seconds.` };
   }
 
+  // Validate and sanitize URL
+  const validation = validateAndSanitizeUrl(url);
+  if (!validation.valid) {
+    return { error: validation.error };
+  }
+
+  const { sanitizedUrl, videoId } = validation;
+
   // Check if already exists
-  const existing = await DownloadService.getDownloadByVideoId(videoId);
+  const existing = await DownloadService.getDownloadByVideoId(videoId!);
   if (existing) {
     if (existing.status === "completed") {
       return { error: "This video has already been downloaded and is in your vault." };
@@ -66,9 +81,9 @@ export async function action({ request }: Route.ActionArgs) {
   }
 
   try {
-    const download = await DownloadService.createDownload(url, videoId);
+    const download = await DownloadService.createDownload(sanitizedUrl!, videoId!);
     const job = await downloadQueue.add("download-job", {
-      url,
+      url: sanitizedUrl,
       downloadId: download.id
     });
     await DownloadService.updateJobId(download.id, job.id as string);
@@ -134,10 +149,6 @@ function StatusBadge({ status, progress }: { status: string; progress: number | 
   }
 }
 
-function extractVideoId(url: string): string {
-  const match = url.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
-  return match ? match[1] : "";
-}
 
 export default function Home() {
   const navigation = useNavigation();
