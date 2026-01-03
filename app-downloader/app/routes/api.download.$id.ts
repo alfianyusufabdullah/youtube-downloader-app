@@ -4,6 +4,7 @@ import fs from "fs";
 import path from "path";
 
 export async function loader({ params }: LoaderFunctionArgs) {
+    console.log(`[API] Download request for ID: ${params.id}`);
     const downloadId = parseInt(params.id!);
     if (isNaN(downloadId)) {
         return new Response("Invalid ID", { status: 400 });
