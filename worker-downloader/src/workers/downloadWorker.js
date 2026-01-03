@@ -24,14 +24,14 @@ export const downloadWorker = new Worker(
                     await updateDownloadProgress(downloadId, Math.floor(progress));
                     if (title && !extractedTitle) {
                         extractedTitle = title;
-                        await updateDownloadStatus(downloadId, 'processing', null, title);
+                        await updateDownloadStatus(downloadId, 'processing', null, title, title);
                     }
                 }
             };
 
             const handleStatus = async (status) => {
                 if (downloadId) {
-                    await updateDownloadStatus(downloadId, status, null, extractedTitle);
+                    await updateDownloadStatus(downloadId, status, null, extractedTitle, extractedTitle);
                 }
             };
 
@@ -55,7 +55,7 @@ export const downloadWorker = new Worker(
             if (exitCode !== 0) throw new Error(`Exit code ${exitCode}`);
 
             if (downloadId) {
-                await updateDownloadStatus(downloadId, 'completed', null, extractedTitle);
+                await updateDownloadStatus(downloadId, 'completed', null, extractedTitle, extractedTitle);
                 await updateDownloadProgress(downloadId, 100);
             }
 
