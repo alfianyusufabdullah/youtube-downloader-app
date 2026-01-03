@@ -2,6 +2,7 @@ import { docker } from '../config/docker.js';
 import { CONFIG } from '../config/constants.js';
 import { sleep, throttle } from '../utils/index.js';
 import { buildYtDlpArgs } from '../utils/commandBuilder.js';
+import path from 'path';
 
 export async function pollContainer(container) {
     while (true) {
@@ -23,14 +24,14 @@ export async function pollContainer(container) {
 }
 
 function extractTitleFromLog(logLine) {
-    const downloadMatch = logLine.match(/\[download\] Destination: (.+)/);
-    if (downloadMatch) {
-        return downloadMatch[1].trim();
-    }
-
     const mergerMatch = logLine.match(/\[Merger\] Merging formats into "(.+)"/);
     if (mergerMatch) {
-        return mergerMatch[1].trim();
+        return { title: path.basename(mergerMatch[1].trim()), isFinal: true };
+    }
+
+    const downloadMatch = logLine.match(/\[download\] Destination: (.+)/);
+    if (downloadMatch) {
+        return { title: path.basename(downloadMatch[1].trim()), isFinal: false };
     }
 
     return null;
@@ -125,12 +126,10 @@ export async function runDownloaderContainer(url, jobDetail, options = {}, onPro
         const logLine = chunk.toString();
         process.stdout.write(logLine);
 
-        if (!extractedTitle) {
-            const title = extractTitleFromLog(logLine);
-            if (title) {
-                extractedTitle = title;
-                console.log(`[Job ${jobDetail.id}] Extracted title: ${title}`);
-            }
+        const extraction = extractTitleFromLog(logLine);
+        if (extraction && (!extractedTitle || extraction.isFinal)) {
+            extractedTitle = extraction.title;
+            console.log(`[Job ${jobDetail.id}] Extracted title: ${extractedTitle} (Final: ${extraction.isFinal})`);
         }
 
         const progress = extractProgressFromLog(logLine);
