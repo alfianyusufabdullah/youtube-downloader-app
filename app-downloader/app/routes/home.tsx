@@ -190,7 +190,7 @@ export default function Home() {
 
         <SidebarContent className="bg-transparent">
           <SidebarGroup className="px-6 py-2">
-            <SidebarGroupLabel className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest mb-4">Ingest</SidebarGroupLabel>
+            <SidebarGroupLabel className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest mb-4">Queue</SidebarGroupLabel>
             <SidebarGroupContent>
               <Form method="post" className="space-y-4">
                 <div className="space-y-2">
@@ -199,7 +199,7 @@ export default function Home() {
                     name="url"
                     id="url"
                     required
-                    placeholder="Capture URL..."
+                    placeholder="Youtube URL..."
                     className="h-10 text-sm bg-white border-slate-200 focus-visible:ring-indigo-500/10 transition-all rounded-xl"
                   />
                 </div>
@@ -209,7 +209,7 @@ export default function Home() {
                   ) : (
                     <>
                       <Download className="mr-2 h-4 w-4" />
-                      Sync to Ingest
+                      Add to Queue
                     </>
                   )}
                 </Button>
