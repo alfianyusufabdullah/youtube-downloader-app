@@ -45,6 +45,7 @@ services:
     volumes:
       - ./app-downloader:/app
       - /app/node_modules
+      - ./downloads:/downloads
     environment:
       - REDIS_HOST=redis
       - NODE_ENV=development
