@@ -62,5 +62,13 @@ export const DownloadService = {
             .where(eq(downloads.jobId, jobId))
             .limit(1);
         return download;
+    },
+
+    async getDownloadById(id: number) {
+        const [download] = await db.select()
+            .from(downloads)
+            .where(eq(downloads.id, id))
+            .limit(1);
+        return download;
     }
 };
