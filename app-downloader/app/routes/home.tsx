@@ -91,34 +91,34 @@ function StatusBadge({ status, progress }: { status: string; progress: number | 
   switch (status) {
     case "queued":
       return (
-        <Badge variant="secondary" className="font-normal text-[10px] uppercase tracking-wider px-2 py-0">
-          <Clock className="mr-1 h-3 w-3 text-slate-400" />
+        <Badge variant="secondary" className="bg-slate-100 text-slate-500 border-none font-medium px-2 py-0.5 rounded-full text-[11px]">
+          <Clock className="mr-1 h-3 w-3" />
           Queued
         </Badge>
       );
     case "processing":
       return (
-        <Badge variant="default" className="font-medium text-[10px] uppercase tracking-wider px-2 py-0 gap-1 bg-slate-900 border-none shadow-none">
+        <Badge variant="default" className="bg-indigo-50 text-indigo-600 border border-indigo-100 hover:bg-indigo-50 shadow-none font-medium px-2 py-0.5 rounded-full text-[11px] gap-1.5">
           <Loader2 className="h-3 w-3 animate-spin" />
           {progress || 0}%
         </Badge>
       );
     case "completed":
       return (
-        <Badge variant="outline" className="font-medium text-[10px] uppercase tracking-wider px-2 py-0 gap-1 border-emerald-100 text-emerald-600 bg-emerald-50/50">
+        <Badge variant="outline" className="bg-emerald-50 text-emerald-600 border-emerald-100 font-medium px-2 py-0.5 rounded-full text-[11px] gap-1.5">
           <CheckCircle className="h-3 w-3" />
           Completed
         </Badge>
       );
     case "failed":
       return (
-        <Badge variant="destructive" className="font-medium text-[10px] uppercase tracking-wider px-2 py-0 gap-1 shadow-none">
+        <Badge variant="destructive" className="bg-rose-50 text-rose-600 border-rose-100 border hover:bg-rose-50 shadow-none font-medium px-2 py-0.5 rounded-full text-[11px] gap-1.5">
           <XCircle className="h-3 w-3" />
           Failed
         </Badge>
       );
     default:
-      return <Badge variant="outline" className="text-[10px] uppercase tracking-wider px-2 py-0">{status}</Badge>;
+      return <Badge variant="outline" className="font-medium px-2 py-0.5 rounded-full text-[11px]">{status}</Badge>;
   }
 }
 
@@ -157,11 +157,12 @@ export default function Home() {
 
   useEffect(() => {
     if (actionData?.success) {
-      toast.success(`Job #${actionData.jobId} added to queue`, {
-        description: "Your download will start shortly.",
+      toast.success("Job synchronized", {
+        description: "Your download has been added to the vault.",
+        className: "bg-white border-slate-100 text-slate-900 border shadow-lg rounded-2xl",
       });
     } else if (actionData?.error) {
-      toast.error("Error", {
+      toast.error("Process failed", {
         description: actionData.error,
       });
     }
@@ -169,45 +170,41 @@ export default function Home() {
 
   return (
     <SidebarProvider>
-      <Sidebar collapsible="offcanvas">
-        <SidebarHeader className="bg-white">
-          <div className="flex items-center gap-3 px-3 py-6">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-900 shadow-sm">
-              <Youtube className="h-5 w-5 text-white" />
+      <Sidebar collapsible="offcanvas" className="border-r border-slate-100 bg-slate-50/50 backdrop-blur-sm">
+        <SidebarHeader className="bg-transparent">
+          <div className="flex items-center gap-3 px-4 py-8">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-600 text-white shadow-xl shadow-indigo-200">
+              <Youtube className="h-5 w-5" />
             </div>
             <div className="flex flex-col">
               <span className="text-sm font-bold tracking-tight text-slate-900">Media Vault</span>
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">Engine v2.0</span>
+              <span className="text-[11px] font-medium text-slate-400">Library Sync</span>
             </div>
           </div>
         </SidebarHeader>
 
-        <SidebarContent>
-          <SidebarGroup className="px-3">
-            <SidebarGroupLabel className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 px-0">Add Media</SidebarGroupLabel>
+        <SidebarContent className="bg-transparent">
+          <SidebarGroup className="px-6 py-2">
+            <SidebarGroupLabel className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest mb-4">Ingest</SidebarGroupLabel>
             <SidebarGroupContent>
-              <Form method="post" className="space-y-3 px-1">
+              <Form method="post" className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="url" className="text-xs">YouTube URL</Label>
                   <Input
                     type="url"
                     name="url"
                     id="url"
                     required
-                    placeholder="https://youtube.com/..."
-                    className="h-9"
+                    placeholder="Capture URL..."
+                    className="h-10 text-sm bg-white border-slate-200 focus-visible:ring-indigo-500/10 transition-all rounded-xl"
                   />
                 </div>
-                <Button type="submit" className="w-full" size="sm" disabled={isSubmitting}>
+                <Button type="submit" className="w-full h-10 text-sm font-semibold bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-lg shadow-indigo-100 transition-all border-none" disabled={isSubmitting}>
                   {isSubmitting ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Queueing...
-                    </>
+                    <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
                     <>
                       <Download className="mr-2 h-4 w-4" />
-                      Start Download
+                      Sync to Ingest
                     </>
                   )}
                 </Button>
@@ -215,21 +212,24 @@ export default function Home() {
             </SidebarGroupContent>
           </SidebarGroup>
 
-          <Separator />
+          <Separator className="my-6 mx-6 bg-slate-200/50" />
 
-          <SidebarGroup className="px-3">
-            <SidebarGroupLabel className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 px-0">Vault Stats</SidebarGroupLabel>
+          <SidebarGroup className="px-6">
+            <SidebarGroupLabel className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest mb-4">Vault Overview</SidebarGroupLabel>
             <SidebarGroupContent>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-3">
                 {[
-                  { label: "Total", value: downloadList.length },
-                  { label: "Done", value: downloadList.filter(d => d.status === "completed").length },
-                  { label: "Active", value: downloadList.filter(d => d.status === "processing").length },
-                  { label: "Wait", value: downloadList.filter(d => d.status === "queued").length }
+                  { label: "Total", value: downloadList.length, color: "bg-slate-900" },
+                  { label: "Done", value: downloadList.filter(d => d.status === "completed").length, color: "bg-emerald-500" },
+                  { label: "Live", value: downloadList.filter(d => d.status === "processing").length, color: "bg-indigo-500" },
+                  { label: "Queue", value: downloadList.filter(d => d.status === "queued").length, color: "bg-slate-400" }
                 ].map((stat) => (
-                  <div key={stat.label} className="p-3 bg-slate-50 border border-slate-100/50 rounded-xl space-y-0.5">
-                    <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-tight">{stat.label}</span>
-                    <span className="block text-lg font-bold text-slate-900 leading-none">{stat.value}</span>
+                  <div key={stat.label} className="p-4 bg-white border border-slate-100 rounded-2xl shadow-sm hover:shadow-md hover:border-indigo-100 transition-all group">
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <div className={`h-1.5 w-1.5 rounded-full ${stat.color} opacity-40`} />
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">{stat.label}</span>
+                    </div>
+                    <span className="text-xl font-bold text-slate-900 leading-none">{stat.value}</span>
                   </div>
                 ))}
               </div>
@@ -237,110 +237,109 @@ export default function Home() {
           </SidebarGroup>
         </SidebarContent>
 
-        <SidebarFooter>
-          <div className="flex items-center justify-center gap-2 p-2">
-            <Button variant="ghost" size="icon">
-              <Github className="h-4 w-4" />
-            </Button>
-            <Button variant="ghost" size="icon">
-              <Heart className="h-4 w-4" />
-            </Button>
-          </div>
-          <div className="px-2 py-2 text-center text-xs text-muted-foreground">
-            © 2026 Antigravity
+        <SidebarFooter className="py-8 bg-transparent text-center">
+          <div className="px-6 py-4 bg-indigo-50/50 rounded-2xl border border-indigo-100 mx-6">
+            <p className="text-[10px] font-medium text-indigo-600">Enterprise Engine</p>
+            <p className="text-[9px] text-indigo-400 mt-0.5">Build v2.1.0-sophia</p>
           </div>
         </SidebarFooter>
       </Sidebar>
 
-      <SidebarInset>
-        <header className="flex h-14 items-center gap-4 border-b px-6">
-          <SidebarTrigger />
-          <Separator orientation="vertical" className="h-6" />
-          <div className="flex items-center gap-2">
-            <History className="h-4 w-4" />
-            <h1 className="font-semibold">Download Queue</h1>
+      <SidebarInset className="bg-white">
+        <header className="flex h-16 items-center gap-4 px-8 bg-white/80 backdrop-blur-xl border-b border-slate-50 sticky top-0 z-10">
+          <SidebarTrigger className="h-9 w-9 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all" />
+          <Separator orientation="vertical" className="h-5 bg-slate-100" />
+          <div className="flex items-center gap-3">
+            <div className="h-6 w-6 rounded-md bg-slate-50 flex items-center justify-center border border-slate-100">
+              <History className="h-3.5 w-3.5 text-slate-400" />
+            </div>
+            <h1 className="text-sm font-bold text-slate-900 tracking-tight">Resource Management</h1>
           </div>
           <div className="ml-auto">
-            <Badge variant="outline">
-              {downloadList.filter(d => d.status === "processing" || d.status === "queued").length} active
-            </Badge>
+            <div className="flex items-center gap-2 px-3 py-1 bg-indigo-50 text-indigo-600 rounded-full border border-indigo-100 transition-all">
+              <div className="h-2 w-2 rounded-full bg-indigo-500 animate-pulse" />
+              <span className="text-[11px] font-bold uppercase tracking-wider">Engine Live</span>
+            </div>
           </div>
         </header>
 
-        <main className="flex-1 p-8 bg-slate-50/20">
-          <div className="max-w-6xl mx-auto space-y-6">
-            <div className="flex flex-col gap-1">
-              <h2 className="text-2xl font-bold tracking-tight text-slate-900">Download Queue</h2>
-              <p className="text-sm text-slate-500">History and real-time status of your video downloads.</p>
+        <main className="flex-1 p-8 bg-[#fafbff]">
+          <div className="max-w-6xl mx-auto space-y-8">
+            <div className="flex items-end justify-between">
+              <div className="space-y-1">
+                <h2 className="text-3xl font-bold tracking-tight text-slate-900">Synchronized Media</h2>
+                <p className="text-sm font-medium text-slate-500">Real-time status of persistent download jobs.</p>
+              </div>
             </div>
 
-            <Card className="border-slate-200/60 shadow-none bg-white">
-              <CardContent className="p-0">
-                {downloadList.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-20 text-center">
-                    <div className="h-12 w-12 rounded-full bg-slate-50 flex items-center justify-center mb-4 border border-slate-100">
-                      <Download className="h-6 w-6 text-slate-300" />
-                    </div>
-                    <h3 className="text-sm font-semibold text-slate-700">No active downloads</h3>
-                    <p className="mt-1 text-sm text-slate-400">Add a link in the sidebar to start a new job.</p>
+            <div className="bg-white border border-slate-200/60 rounded-[2rem] shadow-xl shadow-slate-200/20 overflow-hidden">
+              {downloadList.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-32 text-center">
+                  <div className="h-20 w-20 rounded-full bg-slate-50 flex items-center justify-center mb-6">
+                    <Download className="h-8 w-8 text-slate-200" />
                   </div>
-                ) : (
-                  <Table>
-                    <TableHeader className="bg-slate-50/50">
-                      <TableRow className="border-b border-slate-100 hover:bg-transparent">
-                        <TableHead className="w-[60px] text-[11px] font-bold uppercase tracking-wider text-slate-400 pl-6 h-10">ID</TableHead>
-                        <TableHead className="text-[11px] font-bold uppercase tracking-wider text-slate-400 h-10">Media Details</TableHead>
-                        <TableHead className="w-[140px] text-[11px] font-bold uppercase tracking-wider text-slate-400 h-10">Status</TableHead>
-                        <TableHead className="w-[160px] text-right text-[11px] font-bold uppercase tracking-wider text-slate-400 pr-6 h-10">Added On</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {downloadList.map((download) => (
-                        <TableRow key={download.id} className="border-b border-slate-100/60 hover:bg-slate-50/30 group transition-colors">
-                          <TableCell className="font-mono text-[11px] text-slate-400 pl-6 h-16">
-                            #{download.id}
-                          </TableCell>
-                          <TableCell className="h-16 py-0">
-                            <div className="flex flex-col justify-center">
-                              <span className="text-[13px] font-semibold text-slate-700 leading-tight truncate max-w-[500px]">
-                                {download.title || extractVideoId(download.url) || "Resolving Metadata..."}
+                  <h3 className="text-lg font-bold text-slate-800">No active resources</h3>
+                  <p className="mt-2 text-sm text-slate-400 max-w-sm">Capture a URL from the sidebar to begin populating your media vault.</p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader className="bg-slate-50/40 border-b border-slate-100">
+                    <TableRow className="hover:bg-transparent border-none">
+                      <TableHead className="w-[100px] text-[11px] font-bold uppercase tracking-wider text-slate-400 pl-8 h-12">Registry ID</TableHead>
+                      <TableHead className="text-[11px] font-bold uppercase tracking-wider text-slate-400 h-12">Media Metadata</TableHead>
+                      <TableHead className="w-[160px] text-[11px] font-bold uppercase tracking-wider text-slate-400 h-12">Operational Status</TableHead>
+                      <TableHead className="w-[180px] text-right text-[11px] font-bold uppercase tracking-wider text-slate-400 pr-8 h-12">Captured At</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {downloadList.map((download) => (
+                      <TableRow key={download.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors group">
+                        <TableCell className="font-mono text-xs font-semibold text-slate-400 pl-8 h-20">
+                          #{String(download.id).padStart(4, '0')}
+                        </TableCell>
+                        <TableCell className="h-20 py-0">
+                          <div className="flex flex-col">
+                            <span className="text-[15px] font-bold text-slate-800 leading-tight group-hover:text-indigo-600 transition-colors truncate max-w-[500px]">
+                              {download.title || extractVideoId(download.url) || "Awaiting Title Metadata..."}
+                            </span>
+                            <div className="mt-2 flex flex-col gap-1.5">
+                              {download.status === "processing" && (
+                                <div className="w-full max-w-[300px]">
+                                  <Progress value={download.progress || 0} className="h-1.5 bg-slate-100 rounded-full" />
+                                </div>
+                              )}
+                              <span className="text-[11px] font-medium text-slate-400 truncate max-w-[450px]">
+                                {download.url}
                               </span>
-                              <div className="mt-1.5 flex flex-col gap-1">
-                                {download.status === "processing" && (
-                                  <Progress value={download.progress || 0} className="h-1 bg-slate-100 rounded-none w-full" />
-                                )}
-                                <span className="text-[10px] text-slate-400 font-medium truncate max-w-[400px]">
-                                  {download.url}
-                                </span>
-                                {download.error && (
-                                  <span className="text-[10px] font-semibold text-rose-500 mt-0.5">
-                                    {download.error}
-                                  </span>
-                                )}
-                              </div>
+                              {download.error && (
+                                <div className="flex items-center gap-1.5 text-[11px] font-semibold text-rose-500 mt-1">
+                                  <span className="h-1 w-1 rounded-full bg-rose-500" />
+                                  Error: {download.error}
+                                </div>
+                              )}
                             </div>
-                          </TableCell>
-                          <TableCell className="h-16 py-0">
-                            <StatusBadge status={download.status} progress={download.progress} />
-                          </TableCell>
-                          <TableCell className="text-right text-[11px] text-slate-400 pr-6 h-16 py-0">
-                            {download.createdAt
-                              ? new Date(download.createdAt).toLocaleDateString(undefined, {
-                                month: 'short',
-                                day: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit',
-                                hour12: true
-                              })
-                              : "-"}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
-              </CardContent>
-            </Card>
+                          </div>
+                        </TableCell>
+                        <TableCell className="h-20 py-0">
+                          <StatusBadge status={download.status} progress={download.progress} />
+                        </TableCell>
+                        <TableCell className="text-right text-[12px] font-medium text-slate-500 pr-8 h-20 py-0">
+                          {download.createdAt
+                            ? new Date(download.createdAt).toLocaleDateString(undefined, {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })
+                            : "-"}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </div>
           </div>
         </main>
       </SidebarInset>
