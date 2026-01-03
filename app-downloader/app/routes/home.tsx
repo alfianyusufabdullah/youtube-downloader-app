@@ -492,6 +492,14 @@ export default function Home() {
                         <TableCell className="h-20 py-0">
                           <div className="flex items-center gap-2">
                             <StatusBadge status={download.status} progress={download.progress} />
+                            {download.status === "completed" && (
+                              <Button asChild variant="ghost" size="sm" className="h-7 px-2 text-xs text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50">
+                                <a href={`/api/download/${download.id}`} download={download.fileName || "video"}>
+                                  <Download className="h-3 w-3 mr-1" />
+                                  Download
+                                </a>
+                              </Button>
+                            )}
                             {download.status === "failed" && (
                               <Form method="post" className="inline">
                                 <input type="hidden" name="url" value={download.url} />
