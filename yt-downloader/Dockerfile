@@ -39,7 +39,7 @@ RUN mkdir -p /downloads/.config/yt-dlp
 ENV YT_DLP_OUTPUT="/downloads/%(title)s.%(ext)s"
 
 # Set entrypoint with default mp4 output and progress output
-ENTRYPOINT ["yt-dlp", "--merge-output-format", "mp4", "--progress", "--newline"]
+ENTRYPOINT ["yt-dlp", "--progress", "--newline"]
 
 # Default command (show help)
 CMD ["--help"]
