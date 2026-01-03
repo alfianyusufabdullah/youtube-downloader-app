@@ -30,7 +30,14 @@ export const downloadWorker = new Worker(
                 }
             };
 
-            container = await runDownloaderContainer(url, { id: job.id }, handleProgress);
+            // Define status handler
+            const handleStatus = async (status) => {
+                if (downloadId) {
+                    await updateDownloadStatus(downloadId, status, null, extractedTitle);
+                }
+            };
+
+            container = await runDownloaderContainer(url, { id: job.id }, handleProgress, handleStatus);
             console.log(`[Job ${job.id}] Container started. Polling...`);
 
             const exitCode = await pollContainer(container);
