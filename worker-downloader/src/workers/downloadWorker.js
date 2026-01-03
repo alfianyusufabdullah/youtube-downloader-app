@@ -8,10 +8,9 @@ import { updateDownloadStatus, updateDownloadProgress } from '../db/index.js';
 export const downloadWorker = new Worker(
     QUEUE_NAME,
     async (job) => {
-        const { url, downloadId } = job.data;
+        const { url, downloadId, options = {} } = job.data;
         if (!url) throw new Error('No URL provided');
 
-        // Update status to processing
         if (downloadId) {
             await updateDownloadStatus(downloadId, 'processing');
         }
@@ -20,7 +19,6 @@ export const downloadWorker = new Worker(
         let extractedTitle = null;
 
         try {
-            // Define progress handler
             const handleProgress = async (progress, title) => {
                 if (downloadId) {
                     await updateDownloadProgress(downloadId, Math.floor(progress));
@@ -31,23 +29,20 @@ export const downloadWorker = new Worker(
                 }
             };
 
-            // Define status handler
             const handleStatus = async (status) => {
                 if (downloadId) {
                     await updateDownloadStatus(downloadId, status, null, extractedTitle);
                 }
             };
 
-            container = await runDownloaderContainer(url, { id: job.id }, handleProgress, handleStatus);
+            container = await runDownloaderContainer(url, { id: job.id }, options, handleProgress, handleStatus);
             console.log(`[Job ${job.id}] Container started. Polling...`);
 
             const exitCode = await pollContainer(container);
             console.log(`[Job ${job.id}] Container exited with code: ${exitCode}`);
 
-            // Cancel throttled updates
             container.cancelThrottle?.();
 
-            // Get final title if available
             extractedTitle = container.getExtractedTitle?.() || extractedTitle;
 
             try {
@@ -59,7 +54,6 @@ export const downloadWorker = new Worker(
 
             if (exitCode !== 0) throw new Error(`Exit code ${exitCode}`);
 
-            // Update status to completed with title
             if (downloadId) {
                 await updateDownloadStatus(downloadId, 'completed', null, extractedTitle);
                 await updateDownloadProgress(downloadId, 100);
@@ -69,10 +63,8 @@ export const downloadWorker = new Worker(
         } catch (err) {
             console.error(`[Job ${job.id}] Error:`, err.message);
 
-            // Cancel throttled updates on error
             container?.cancelThrottle?.();
 
-            // Update status to failed with error message
             if (downloadId) {
                 await updateDownloadStatus(downloadId, 'failed', err.message, extractedTitle);
             }
