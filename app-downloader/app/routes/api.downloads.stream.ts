@@ -1,6 +1,4 @@
-import { db } from "~/db";
-import { downloads } from "~/db/schema";
-import { desc } from "drizzle-orm";
+import { DownloadService } from "~/services/download.server";
 
 export async function loader() {
     const headers = new Headers({
@@ -15,11 +13,7 @@ export async function loader() {
 
             const sendUpdate = async () => {
                 try {
-                    const downloadList = await db
-                        .select()
-                        .from(downloads)
-                        .orderBy(desc(downloads.createdAt))
-                        .limit(20);
+                    const downloadList = await DownloadService.getRecentDownloads(20);
 
                     const data = JSON.stringify(downloadList);
                     controller.enqueue(encoder.encode(`data: ${data}\n\n`));
