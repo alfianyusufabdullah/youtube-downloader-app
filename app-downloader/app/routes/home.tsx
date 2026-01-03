@@ -79,17 +79,24 @@ export async function action({ request }: Route.ActionArgs) {
 
   const { sanitizedUrl, videoId } = validation;
 
-  // Check if same video is currently in progress (queued or processing)
-  const existing = await DownloadService.getDownloadByVideoId(videoId!);
-  if (existing && (existing.status === "queued" || existing.status === "processing" || existing.status === "merging")) {
-    return { error: "This video is already in the queue or is currently being synced." };
+  // Parse audioOnly early so we can use it in the duplicate check
+  const audioOnly = formData.get("audioOnly") === 'on';
+
+  // Check if same video with same mode (video/audio) is currently in progress
+  const inProgress = await DownloadService.getInProgressDownloadByVideoId(videoId!, audioOnly);
+  if (inProgress) {
+    return {
+      error: audioOnly
+        ? "Audio-only download for this video is already in the queue."
+        : "Video download for this video is already in the queue."
+    };
   }
 
   try {
     const options: DownloadOptions = {
       quality: (formData.get("quality") as DownloadOptions['quality']) || 'best',
       format: (formData.get("format") as DownloadOptions['format']) || 'mp4',
-      audioOnly: formData.get("audioOnly") === 'on',
+      audioOnly,
       audioFormat: (formData.get("audioFormat") as DownloadOptions['audioFormat']) || undefined,
       downloadSubtitles: formData.get("downloadSubtitles") === 'on',
       subtitleLanguage: (formData.get("subtitleLanguage") as string) || 'en',
